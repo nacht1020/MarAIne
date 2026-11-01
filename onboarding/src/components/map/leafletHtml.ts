@@ -59,7 +59,9 @@ export const LEAFLET_HTML = `<!doctype html>
   .pin::before { content: ''; position: absolute; left: 3px; top: 0; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--c); border: 3px solid #fff; box-shadow: 0 3px 6px rgba(0,0,0,.35); }
   .pin span { position: absolute; left: 11px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
   @media (prefers-reduced-motion: no-preference) { .leaflet-marker-icon:hover .pin { transform: translateY(-3px); transition: transform .15s ease-out; } }
-  .leaflet-control-attribution { position: relative; z-index: 2; }
+  /* The OSM credit the tile licence requires, kept small and quiet; no Leaflet logo. */
+  .leaflet-control-attribution { position: relative; z-index: 2; font-size: 9px; line-height: 1.3; padding: 0 4px; background: rgba(255,255,255,.55) !important; color: #5b6b75; border-radius: 4px 0 0 0; }
+  .leaflet-control-attribution a { color: inherit; text-decoration: none; }
 
   .boat { position: relative; width: 52px; height: 40px; }
   .boat svg { position: absolute; left: 0; bottom: 6px; transform-origin: 50% 90%; }
@@ -126,9 +128,10 @@ export const LEAFLET_HTML = `<!doctype html>
   layout();
   map.on('resize', layout);
   L.control.zoom({ position: 'topright' }).addTo(map);
+  map.attributionControl.setPrefix(false);
   var tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OSM</a>'
   }).addTo(map);
 
   var townLayer = L.layerGroup().addTo(map);

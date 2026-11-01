@@ -469,7 +469,7 @@ const TYPE_HELP: Record<ZoneType, string> = {
   restricted: "Catches logged inside are flagged for review.",
   sanctuary: "No-take area. Catches logged inside are flagged for review.",
   safe: "Open fishing ground. Catches inside are not flagged.",
-  pollution: "Catches inside carry a pollution advisory on the QR page but are not flagged.",
+  pollution: "Catches inside carry a pollution advisory but are not flagged.",
 };
 
 function Legend({ counts }: { counts: Record<ZoneType, number> }) {

@@ -59,7 +59,7 @@ export default function HomeScreen() {
   const ink = moodInk(mood);
   const sky = data ? skyOf(data.weatherCode, data.isDay) : null;
   const condition = preview ? `${MOOD_LOOK[preview].label} (preview)` : sky ? t(sky.en, sky.tl) : sea.status === 'loading' ? t('Loading the forecast…', 'Kinukuha ang taya ng panahon…') : t('Forecast unavailable', 'Walang makuhang taya');
-  const heroHeight = 420 + insets.top;
+  const heroHeight = 510 + insets.top;
 
   return (
     <ScreenContainer

@@ -141,7 +141,8 @@ export function WaveBand({
   return (
     <Animated.View pointerEvents="none" style={[styles.band, { bottom, width: width * 2, height: 80 }, style]}>
       {[0, 1].map((i) => (
-        <Svg key={i} width={width} height={80} viewBox="0 0 360 80" preserveAspectRatio="none">
+        // Each tile overlaps the next by 1px so no hairline seam shows where they meet.
+        <Svg key={i} width={width + 1} height={80} viewBox="0 0 360 80" preserveAspectRatio="none" style={{ marginLeft: i ? -1 : 0 }}>
           <Path d={d} fill={color} />
         </Svg>
       ))}
@@ -151,6 +152,7 @@ export function WaveBand({
 
 export function Boat({ sceneWidth, bottom, waveHeightM, reduce }: { sceneWidth: number; bottom: number; waveHeightM: number; reduce: boolean }) {
   const bob = useSharedValue(0);
+  const sway = useSharedValue(0);
   const tapY = useSharedValue(0);
   const tapR = useSharedValue(0);
   const boatWidth = clamp(sceneWidth * 0.42, 130, 200);
@@ -167,11 +169,17 @@ export function Boat({ sceneWidth, bottom, waveHeightM, reduce }: { sceneWidth: 
   useEffect(() => {
     if (reduce) return;
     bob.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
-    return () => cancelAnimation(bob);
-  }, [bob, reduce]);
+    // A slow drift back and forth, out of step with the bob, so the boat never looks parked.
+    sway.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => {
+      cancelAnimation(bob);
+      cancelAnimation(sway);
+    };
+  }, [bob, sway, reduce]);
 
   const style = useAnimatedStyle(() => ({
     transform: [
+      { translateX: (sway.value - 0.5) * 24 },
       { translateY: -bob.value * lift.value + tapY.value },
       { rotate: `${(bob.value - 0.5) * 2 * tilt.value + tapR.value}deg` },
     ],
@@ -192,6 +200,12 @@ export function Boat({ sceneWidth, bottom, waveHeightM, reduce }: { sceneWidth: 
     <Animated.View style={[styles.boat, { bottom, left: sceneWidth * 0.18, width: boatWidth, height: boatWidth * 0.6 }, style]}>
       <Pressable onPress={rock} accessible={false} style={StyleSheet.absoluteFill}>
         <Svg width="100%" height="100%" viewBox="74 118 158 94">
+          {/* The fisher in a salakot, line out over the bow. Drawn before the hull so the hull hides their legs. */}
+          <Path d="M137 177 L106 150" stroke="#8A5A2B" strokeWidth={2} strokeLinecap="round" />
+          <Path d="M106 150 Q 100 170, 99 200" stroke={colors.sand100} strokeOpacity={0.8} strokeWidth={0.8} fill="none" />
+          <Path d="M123 194 L125 179 Q 130 172, 136 179 L138 194 Z" fill={colors.reef500} />
+          <Circle cx={130} cy={169} r={5} fill="#C68B59" />
+          <Path d="M120 168 L130 159 L140 168 Z" fill="#D9B26F" />
           <Path d="M152 190 L152 124" stroke={colors.sea900} strokeWidth={3} strokeLinecap="round" />
           <Path d="M155 128 L155 182 L194 177 Z" fill={colors.coral500} />
           <Path d="M155 150 L178 179" stroke={colors.coral700} strokeWidth={1.5} strokeOpacity={0.5} />

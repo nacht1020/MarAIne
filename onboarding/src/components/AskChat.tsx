@@ -11,6 +11,7 @@ import type { RoleId } from '@/constants/roles';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { askAssistant, type ChatLang, type ChatTurn } from '@/services/assistant';
+import { canListen, listen, speak, stopSpeaking } from '@/services/voice';
 import { fonts, useTheme } from '@/theme';
 
 const LANG_KEY = `${STORAGE_PREFIX}/chat-lang/v1`;
@@ -18,25 +19,26 @@ const LANG_KEY = `${STORAGE_PREFIX}/chat-lang/v1`;
 // Starter questions per role and language, in simple words, so the first tap is easy.
 const STARTERS: Record<ChatLang, Record<RoleId | 'none', string[]>> = {
   en: {
-    fisherfolk: ['Is it safe to go out today?', 'Will the waves be big tomorrow?', 'Where can I not fish?'],
+    fisherfolk: ['Is it safe to go out today?', 'Will the waves be big tomorrow?', 'Where can I not fish?', 'What time is sunset today?'],
     aquaculture: ['Will it rain a lot this week?', 'How do I spot ice-ice early?', 'Is the sea calm enough to check my lines?'],
-    'bantay-dagat': ['Is the sea OK for a patrol today?', 'What should I report?', 'Where is fishing not allowed?'],
-    tourist: ['Where can I snorkel?', 'Is today good for island hopping?', 'What should I not do on the reef?'],
-    community: ['Is a storm coming?', 'How do I report trash?', 'Where are the sanctuaries?'],
+    'bantay-dagat': ['Is the sea OK for a patrol today?', 'What should I report?', 'Where is fishing not allowed?', 'What do I do if I see dynamite fishing?'],
+    tourist: ['Where can I snorkel?', 'Is today good for island hopping?', 'What should I not do on the reef?', 'Will it rain this afternoon?'],
+    community: ['Is a storm coming?', 'How do I report trash?', 'Where are the sanctuaries?', 'Will it rain this afternoon?'],
     none: ['Is it safe to go out today?', 'Where can I snorkel?', 'What are the rules at sea?'],
   },
   tl: {
-    fisherfolk: ['Ligtas bang pumalaot ngayon?', 'Malakas ba ang alon bukas?', 'Saan bawal mangisda?'],
+    fisherfolk: ['Ligtas bang pumalaot ngayon?', 'Malakas ba ang alon bukas?', 'Saan bawal mangisda?', 'Anong oras lulubog ang araw ngayon?'],
     aquaculture: ['Uulan ba nang malakas ngayong linggo?', 'Paano makita agad ang ice-ice?', 'Kalmado ba ang dagat para tingnan ang linya ko?'],
-    'bantay-dagat': ['Maayos ba ang dagat para sa patrol ngayon?', 'Ano ang dapat kong i-report?', 'Saan bawal mangisda?'],
-    tourist: ['Saan pwedeng mag-snorkel?', 'Maganda ba ngayon para sa island hopping?', 'Ano ang bawal gawin sa bahura?'],
-    community: ['May bagyo bang darating?', 'Paano mag-report ng basura?', 'Saan ang mga sanctuary?'],
+    'bantay-dagat': ['Maayos ba ang dagat para sa patrol ngayon?', 'Ano ang dapat kong i-report?', 'Saan bawal mangisda?', 'Ano ang gagawin kung may nagda-dinamita?'],
+    tourist: ['Saan pwedeng mag-snorkel?', 'Maganda ba ngayon para sa island hopping?', 'Ano ang bawal gawin sa bahura?', 'Uulan ba mamayang hapon?'],
+    community: ['May bagyo bang darating?', 'Paano mag-report ng basura?', 'Saan ang mga sanctuary?', 'Uulan ba mamayang hapon?'],
     none: ['Ligtas bang pumalaot ngayon?', 'Saan pwedeng mag-snorkel?', 'Ano ang mga patakaran sa dagat?'],
   },
 };
 
 // Every line the chat itself shows, in both languages.
-const UI: Record<ChatLang, Record<'subtitle' | 'welcome' | 'placeholder' | 'note' | 'local' | 'switch', string>> = {
+type UiKey = 'subtitle' | 'welcome' | 'placeholder' | 'note' | 'local' | 'switch' | 'listening' | 'notHeard' | 'micBlocked' | 'talk' | 'stopTalk' | 'read' | 'stopRead';
+const UI: Record<ChatLang, Record<UiKey, string>> = {
   en: {
     subtitle: 'Sea, weather, places and rules',
     welcome: 'Great! Ask me anything about the sea, the weather, places to visit, or the rules. Here are some ideas:',
@@ -44,6 +46,13 @@ const UI: Record<ChatLang, Record<'subtitle' | 'welcome' | 'placeholder' | 'note
     note: 'I can make mistakes. For storm warnings, follow PAGASA.',
     local: 'Quick answer from the app',
     switch: 'Change language',
+    listening: 'Listening… speak now',
+    notHeard: "I didn't catch that. Tap the mic and try again.",
+    micBlocked: 'Allow the microphone in your browser so you can talk to me.',
+    talk: 'Ask by voice',
+    stopTalk: 'Stop listening',
+    read: 'Read this answer aloud',
+    stopRead: 'Stop reading',
   },
   tl: {
     subtitle: 'Dagat, panahon, pasyalan at patakaran',
@@ -52,6 +61,13 @@ const UI: Record<ChatLang, Record<'subtitle' | 'welcome' | 'placeholder' | 'note
     note: 'Puwede akong magkamali. Para sa babala ng bagyo, sundin ang PAGASA.',
     local: 'Mabilis na sagot mula sa app',
     switch: 'Palitan ang wika',
+    listening: 'Nakikinig… magsalita ka na',
+    notHeard: 'Hindi kita narinig. Pindutin ulit ang mic at subukan.',
+    micBlocked: 'Payagan ang mikropono sa browser para makapagsalita ka.',
+    talk: 'Magtanong gamit ang boses',
+    stopTalk: 'Itigil ang pakikinig',
+    read: 'Basahin nang malakas ang sagot',
+    stopRead: 'Itigil ang pagbasa',
   },
 };
 
@@ -76,6 +92,58 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  // Voice: which answer is being read aloud, and whether the mic is open.
+  const [speaking, setSpeaking] = useState<number | null>(null);
+  const [listening, setListening] = useState(false);
+  const stopListening = useRef<(() => void) | null>(null);
+  const micAvailable = canListen();
+
+  // Stop talking and listening when the chat closes.
+  useEffect(
+    () => () => {
+      stopSpeaking();
+      stopListening.current?.();
+    },
+    [],
+  );
+
+  const readAloud = (i: number, content: string) => {
+    if (!lang) return;
+    if (speaking === i) {
+      stopSpeaking();
+      setSpeaking(null);
+      return;
+    }
+    setSpeaking(i);
+    speak(content, lang, () => setSpeaking((cur) => (cur === i ? null : cur)));
+  };
+
+  const toggleMic = () => {
+    if (!lang || busy) return;
+    if (listening) {
+      stopListening.current?.();
+      return;
+    }
+    stopSpeaking();
+    setSpeaking(null);
+    setError(null);
+    setListening(true);
+    let said = '';
+    stopListening.current = listen(lang, {
+      onText: (heard) => {
+        said = heard;
+        setText(heard);
+      },
+      onEnd: (err) => {
+        setListening(false);
+        stopListening.current = null;
+        // A spoken question is sent as soon as the person stops, and its answer is read back.
+        if (said) send(said, true);
+        else if (err === 'not-allowed' || err === 'service-not-allowed') setError(UI[lang].micBlocked);
+        else if (err !== 'aborted') setError(UI[lang].notHeard);
+      },
+    });
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(LANG_KEY)
@@ -95,7 +163,7 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
     return () => clearTimeout(id);
   }, [turns, busy]);
 
-  const send = async (question: string) => {
+  const send = async (question: string, byVoice = false) => {
     const q = question.trim();
     if (!q || busy || !lang) return;
     const next: ChatTurn[] = [...turns, { role: 'user', content: q }];
@@ -106,6 +174,7 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
     try {
       const reply = await askAssistant(next, state.municipality, state.role, lang);
       setTurns([...next, { role: 'assistant', content: reply.text }]);
+      if (byVoice) readAloud(next.length, reply.text);
       setLocalReplies((n) => (reply.source === 'app' ? new Set(n).add(next.length) : n));
     } catch {
       setError(lang === 'tl' ? 'May problema. Subukan ulit.' : 'Something went wrong. Please try again.');
@@ -149,7 +218,7 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
             </Pressable>
           ) : null}
           {turns.length > 0 ? (
-            <Pressable onPress={() => { setTurns([]); setLocalReplies(new Set()); }} accessibilityRole="button" accessibilityLabel="Start a new chat" hitSlop={10}>
+            <Pressable onPress={() => { stopSpeaking(); setSpeaking(null); setTurns([]); setLocalReplies(new Set()); }} accessibilityRole="button" accessibilityLabel="Start a new chat" hitSlop={10}>
               <MaterialCommunityIcons name="broom" size={24} color={colors.textMuted} />
             </Pressable>
           ) : null}
@@ -218,10 +287,23 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
               <AppText variant="body" style={t.role === 'user' ? { color: colors.textOnPrimary } : undefined} selectable>
                 {t.content}
               </AppText>
-              {localReplies.has(i) ? (
-                <AppText variant="caption" color="textMuted" style={styles.source}>
-                  {UI[lang ?? 'en'].local}
-                </AppText>
+              {t.role === 'assistant' ? (
+                <View style={[styles.row, styles.meta]}>
+                  <Pressable
+                    onPress={() => readAloud(i, t.content)}
+                    accessibilityRole="button"
+                    accessibilityLabel={speaking === i ? UI[lang ?? 'en'].stopRead : UI[lang ?? 'en'].read}
+                    hitSlop={10}
+                    style={[styles.speaker, { backgroundColor: speaking === i ? colors.selected : colors.background }]}
+                  >
+                    <MaterialCommunityIcons name={speaking === i ? 'stop' : 'volume-high'} size={18} color={speaking === i ? colors.surface : colors.selected} />
+                  </Pressable>
+                  {localReplies.has(i) ? (
+                    <AppText variant="caption" color="textMuted" style={[styles.source, styles.flex]}>
+                      {UI[lang ?? 'en'].local}
+                    </AppText>
+                  ) : null}
+                </View>
               ) : null}
             </Animated.View>
           ))}
@@ -239,6 +321,14 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
         </ScrollView>
 
         <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.xs, paddingBottom: spacing.sm, gap: 6 }}>
+          {listening && lang ? (
+            <Animated.View entering={FadeInUp.duration(160)} style={[styles.row, { gap: spacing.xs, alignSelf: 'center' }]} accessibilityLiveRegion="polite">
+              <Dot delay={0} />
+              <AppText variant="caption" style={{ color: colors.selected, fontFamily: fonts.sansBold }}>
+                {UI[lang].listening}
+              </AppText>
+            </Animated.View>
+          ) : null}
           <View style={[styles.row, { gap: spacing.xs, borderRadius: radii.lg, borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: colors.surface, paddingLeft: spacing.md, paddingRight: 6 }]}>
             <TextInput
               value={text}
@@ -253,6 +343,18 @@ export function AskChat({ onClose, dragHandlers }: AskChatProps) {
               onSubmitEditing={() => send(text)}
               blurOnSubmit
             />
+            {micAvailable ? (
+              <Pressable
+                onPress={toggleMic}
+                disabled={!lang || busy}
+                accessibilityRole="button"
+                accessibilityLabel={listening ? UI[lang ?? 'en'].stopTalk : UI[lang ?? 'en'].talk}
+                accessibilityState={{ selected: listening }}
+                style={[styles.send, { backgroundColor: listening ? colors.selected : colors.background, borderWidth: listening ? 0 : 1.5, borderColor: colors.borderStrong }]}
+              >
+                <MaterialCommunityIcons name={listening ? 'stop' : 'microphone'} size={22} color={listening ? colors.surface : !lang || busy ? colors.textMuted : colors.selected} />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => send(text)}
               disabled={busy || !text.trim() || !lang}
@@ -305,7 +407,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   langPill: { borderWidth: 1.5, paddingHorizontal: 8, paddingVertical: 2 },
   langText: { fontFamily: fonts.sansBold, fontSize: 12, lineHeight: 16 },
-  source: { fontSize: 12, lineHeight: 16, marginTop: 4 },
+  source: { fontSize: 12, lineHeight: 16 },
+  meta: { gap: 8, marginTop: 6 },
+  speaker: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   header: { paddingTop: 18, borderBottomWidth: StyleSheet.hairlineWidth },
   grip: { position: 'absolute', top: 6, left: '50%', marginLeft: -18, width: 36, height: 4, borderRadius: 2 },
   row: { flexDirection: 'row', alignItems: 'center' },

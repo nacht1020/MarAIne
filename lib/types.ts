@@ -28,6 +28,5 @@ export type ZoneWithGeoJson = Views["zones_geojson"]["Row"];
 export type CatchDetail = Views["catch_details"]["Row"];
 export type ReportDetail = Views["report_details"]["Row"];
 export type GalleryDetail = Views["gallery_details"]["Row"];
-export type PublicTrace = Public["Functions"]["get_trace"]["Returns"][number];
 
 export { Constants } from "@/lib/database.types";

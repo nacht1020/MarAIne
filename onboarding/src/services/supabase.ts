@@ -10,7 +10,7 @@ import { AppState } from 'react-native';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-// Base of the public trace page that catch QR codes open.
+// Address of the admin web app (used as the map WebView's base URL).
 export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
 
 // null when the build has no keys: the app still works, records just stay on the phone.
@@ -28,5 +28,3 @@ if (supabase) {
     else supabase.auth.stopAutoRefresh();
   });
 }
-
-export const traceUrl = (qrToken: string) => `${SITE_URL}/trace/${qrToken}`;

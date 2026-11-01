@@ -4,7 +4,7 @@ import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { AppText, Button, CatchRow, EmptyState, kg, ScreenContainer, SyncBanner, timeOfDay } from '@/components';
-import { CatchServerInfo } from '@/components/CatchQr';
+import { CatchServerInfo } from '@/components/CatchServerInfo';
 import { useRecords } from '@/hooks/useRecords';
 import { useSync } from '@/hooks/useSync';
 import type { CatchRecord } from '@/storage/records';

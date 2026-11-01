@@ -53,7 +53,7 @@ export function Topbar({ user, onOpenMenu }: TopbarProps) {
           id="global-search"
           name="q"
           type="search"
-          placeholder="Search fisher, species or QR code"
+          placeholder="Search fisher or species"
           className="h-9 pl-8 pr-8"
         />
         <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:block">

@@ -138,7 +138,7 @@ export default function LoginScreen() {
             ? 'So your catches and reports reach the MAO. Your role and town from setup are added for you.'
             : waiting > 0
               ? `Sign in to send the ${waiting} ${waiting === 1 ? 'record' : 'records'} on this phone to the MAO.`
-              : 'Use your Huli Ko account.'}
+              : 'Use your MarAIne account.'}
         </AppText>
       </View>
 
@@ -173,6 +173,8 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           autoComplete={signingUp ? 'new-password' : 'current-password'}
           textContentType={signingUp ? 'newPassword' : 'password'}
           onSubmitEditing={signingUp ? undefined : submit}

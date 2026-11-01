@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (profile.role === 'admin') {
         await supabase.auth.signOut({ scope: 'local' });
-        return { ok: false, message: 'Admin accounts use the Huli Ko dashboard on a computer.' };
+        return { ok: false, message: 'Admin accounts use the MarAIne dashboard on a computer. Sign in here with a fisher, Bantay Dagat or tourist account.' };
       }
       await loadUser(data.user.id, data.user.email ?? null);
       return { ok: true };

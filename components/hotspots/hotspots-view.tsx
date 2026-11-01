@@ -1,10 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowLeft, ExternalLink, Info, Loader2, MapPinOff, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Info, Loader2, MapPinOff, ShieldAlert } from "lucide-react";
 import { CatchStatusBadge } from "@/components/catch/catch-status";
 import { EmptyState } from "@/components/data/states";
 import { ReportStatusBadge } from "@/components/reports/report-status";
@@ -220,9 +219,6 @@ function HotspotDetail({ hotspot, onBack }: { hotspot: Hotspot; onBack: () => vo
                     <li key={r}>{flagLabel(r)}</li>
                   ))}
                 </ul>
-                <Link href={`/trace/${i.qrToken}`} target="_blank" className="inline-flex items-center gap-1 text-xs text-teal hover:underline">
-                  Public QR page <ExternalLink className="size-3" aria-hidden />
-                </Link>
               </>
             ) : (
               <>

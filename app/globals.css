@@ -124,6 +124,18 @@
 .dark .huliko-map .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) saturate(0.35) brightness(0.85) contrast(0.9);
 }
+.huliko-map .leaflet-control-attribution {
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 0 4px;
+  background: hsl(var(--card) / 0.6);
+  color: hsl(var(--muted-foreground));
+  border-radius: 0 4px 0 0;
+}
+.huliko-map .leaflet-control-attribution a {
+  color: inherit;
+  text-decoration: none;
+}
 .dark .huliko-map .leaflet-control-attribution,
 .dark .huliko-map .leaflet-bar a {
   background: hsl(var(--card));

@@ -5,7 +5,6 @@ import { useEffect, useState, useTransition } from "react";
 import { ClipboardCheck, CircleCheck, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { reviewCatch } from "@/app/admin/catches/actions";
-import { CatchQr } from "@/components/catch/catch-qr";
 import { CatchStatusBadge } from "@/components/catch/catch-status";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -127,16 +126,6 @@ function Detail({ row }: { row: CatchDetail }) {
             </Fact>
           </dl>
         </section>
-
-        {row.qr_token && (
-          <section aria-labelledby="qr-heading" className="space-y-2">
-            <h3 id="qr-heading" className="text-sm font-semibold">
-              QR label
-            </h3>
-            <CatchQr token={row.qr_token} label={`${row.species_local_name} caught ${formatDateTime(row.caught_at)}`} />
-            <p className="text-xs text-muted-foreground">The public page shows species, date, first name, municipality and status only.</p>
-          </section>
-        )}
 
         {(row.admin_note || row.reviewed_at) && (
           <section aria-labelledby="history-heading" className="space-y-1.5 rounded-md bg-muted px-3 py-2.5">

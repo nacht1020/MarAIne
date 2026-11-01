@@ -74,7 +74,7 @@ The round **chat button** opens the MarAIne assistant. Drag it to move it.
 | Admin pages have no styling (plain text, blue links) | `npm run build` ran while `npm run dev` was running and overwrote `.next` | Stop the dev server, delete the `.next` folder, run `npm run dev` again |
 | `expo start` fails | It was started in the root folder | `cd onboarding` first |
 | "Port 8082 is in use" | An old Expo server is still running | Close its terminal, or find it with `Get-NetTCPConnection -LocalPort 8082` and run `Stop-Process -Id <id>` |
-| A phone cannot open the app or QR pages | `localhost` only works on this computer | Use this computer's Wi-Fi IP (from `ipconfig`) in `NEXT_PUBLIC_SITE_URL` / `EXPO_PUBLIC_SITE_URL`, and allow Node.js through the Windows firewall on private networks |
+| A phone cannot open the app | `localhost` only works on this computer | Use this computer's Wi-Fi IP (from `ipconfig`) and allow Node.js through the Windows firewall on private networks |
 | Old screens still show | The browser cached the old bundle | Hard refresh: Ctrl + Shift + R |
 | "Invalid login credentials" | The account does not exist or is not confirmed | Check Supabase > Authentication > Users |
 | "Email rate limit exceeded" on sign up | Supabase sends only a few confirmation emails per hour | Wait, or add the user in the Dashboard with **Auto Confirm User** |
@@ -144,9 +144,6 @@ Copy-Item .env.example .env.local
 Fill in the URL and publishable key from Dashboard > Project Settings > API Keys. The dashboard never needs the
 `sb_secret_...` key.
 
-**QR codes on phones:** set `NEXT_PUBLIC_SITE_URL` to an address phones can reach. For a demo on the same Wi-Fi,
-use this computer's IP, e.g. `http://192.168.1.20:3001`, and start with `npx next dev -p 3001 -H 0.0.0.0`.
-
 **SMS webhook:** put a long random value in `SMS_WEBHOOK_SECRET`
 (`node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`), then store its hash once:
 
@@ -166,7 +163,7 @@ Copy-Item .env.example .env.local
 |---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | Same as `NEXT_PUBLIC_SUPABASE_URL` |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Same as `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
-| `EXPO_PUBLIC_SITE_URL` | Address of the admin web app; catch QR codes point to `<this>/trace/<token>` |
+| `EXPO_PUBLIC_SITE_URL` | Address of the admin web app (optional) |
 | `EXPO_PUBLIC_SAMPLE_DATA` | `true` while the database holds the seed |
 
 Everything in this file is bundled into the app, so it holds public values only.
@@ -231,7 +228,7 @@ from the app, SMS or a PIC. It cannot be bypassed from the client.
 | Logged > 48 h late **with no reason** | `late_entry` | flagged for review |
 | AI-assisted (rule-based): > 100 kg per gross ton of the boat | `anomaly_large_catch` | flagged for review |
 | AI-assisted (rule-based): 3rd+ log within 300 m of a protected boundary in 14 days | `anomaly_near_boundary` | flagged for review |
-| Inside a pollution zone | none | `zone_status = pollution` (advisory on the QR page, not a flag) |
+| Inside a pollution zone | none | `zone_status = pollution` (an advisory, not a flag) |
 
 The **AI-assisted checks** page (`/admin/anomalies`) shows the numbers behind each pattern, for example
 "260 kg on a 2.2 GT boat = 118.2 kg per ton (limit 100)". These are published rules, not machine learning, and they
@@ -254,13 +251,11 @@ early signal to check on the ground, not a stock assessment.
 
 ## Privacy
 - Exact coordinates are only returned to admins and to the fisher who logged them.
-- The public QR page calls `get_trace(token)`, which returns species, date, fisher first name, municipality, status
-  and pollution advisory. It never returns coordinates, and catches cannot be listed.
 - The mobile app uses only the publishable key. Secrets live in `.env.local` (never committed) or as Supabase secrets.
 
 ## Project layout
 ```
-app/, components/, lib/   admin dashboard, public QR page, SMS webhook (Next.js)
+app/, components/, lib/   admin dashboard, SMS webhook (Next.js)
 middleware.ts             session refresh and the /admin role guard
 onboarding/               mobile app (Expo)
   app/                    screens: (onboarding) setup flow, (main) tabs, login
@@ -279,5 +274,3 @@ supabase/verify.sql       checks to run after migrating
    Mark it Reviewed with a note.
 3. **Hotspot map.** The Santa Cruz spawning area tops the ranked list.
 4. **Report queue.** Open the Gaspar Island report, move it to Investigating, add a note.
-5. **Scan the QR.** Open `/trace/<qr_token>` on a phone: species, date, first name, municipality and status, with
-   no coordinates.

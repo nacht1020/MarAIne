@@ -1,16 +1,16 @@
 // MarAIne "Ask" assistant. Supabase Edge Function (Deno) that answers questions about sea and
 // weather conditions, snorkeling and diving spots, rules and do's and don'ts around Marinduque.
 //
-// The Claude API key lives only here, as a Supabase secret (ANTHROPIC_API_KEY); the app never sees it.
+// The model key lives only here, as a Supabase secret; the app never sees it. Either provider works:
+//   Claude: ANTHROPIC_API_KEY (used when set)
+//   Gemini: GEMINI_API_KEY from Google AI Studio, optional GEMINI_MODEL (default gemini-3.6-flash, falls back to gemini-3.5-flash-lite)
 // Answers are grounded: this function fetches the live forecast itself, and the app sends the places,
 // zones and rules it already shows. The model is told to say when something is not in that context.
 //
 // Deploy: npx supabase functions deploy sea-guide --no-verify-jwt
-// Secret: npx supabase secrets set ANTHROPIC_API_KEY=...
+// Secret: npx supabase secrets set GEMINI_API_KEY=...   (or ANTHROPIC_API_KEY=...)
 
 import Anthropic from "npm:@anthropic-ai/sdk";
-
-const client = new Anthropic(); // reads ANTHROPIC_API_KEY
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -131,38 +131,90 @@ Deno.serve(async (req) => {
 
   // The live context rides on the newest question, so earlier turns and the system prompt stay cacheable.
   const last = history[history.length - 1]!;
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...history.slice(0, -1),
-    { role: "user", content: `${context}\n\nQuestion: ${last.content}` },
-  ];
+  const messages: Turn[] = [...history.slice(0, -1), { role: "user", content: `${context}\n\nQuestion: ${last.content}` }];
+
+  const ask = Deno.env.get("ANTHROPIC_API_KEY") ? askClaude : Deno.env.get("GEMINI_API_KEY") ? askGemini : null;
+  if (!ask) return json({ error: "The assistant is not set up yet." }, 503);
 
   try {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 4000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low" }, // short chat answers
-      system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-      messages,
-    });
-
-    if (response.stop_reason === "refusal") {
+    const reply = await ask(messages);
+    if (reply === REFUSED) {
       return json({ reply: "I can't help with that one. Ask me about the sea, weather, places, or the rules around Marinduque." });
     }
-    const reply = response.content
-      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
     return json({ reply: reply || "Sorry, I don't have an answer for that. Try asking another way." });
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) return json({ error: "Too many questions right now. Try again in a minute." }, 429);
-    if (error instanceof Anthropic.APIError) {
-      console.error("Claude API error", error.status, error.message);
-      return json({ error: "The assistant is unavailable right now." }, 502);
-    }
-    console.error(error);
-    return json({ error: "The assistant is unavailable right now." }, 500);
+    const status = error instanceof Anthropic.APIError || error instanceof GeminiError ? error.status : undefined;
+    if (status === 429) return json({ error: "Too many questions right now. Try again in a minute." }, 429);
+    console.error("Model API error", status, error instanceof Error ? error.message : error);
+    return json({ error: "The assistant is unavailable right now." }, status ? 502 : 500);
   }
 });
+
+const REFUSED = "\u0000refused";
+
+async function askClaude(messages: Turn[]): Promise<string> {
+  const client = new Anthropic(); // reads ANTHROPIC_API_KEY
+  const response = await client.beta.messages.create({
+    model: "claude-opus-5-5",
+    max_tokens: 4000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "low" }, // short chat answers
+    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+    messages,
+  });
+  if (response.stop_reason === "refusal") return REFUSED;
+  return response.content
+    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+}
+
+class GeminiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+// Google AI Studio (Gemini API) over plain REST, so no extra package is needed. The main model answers
+// best; when it is slow, busy or unavailable (free keys often are), the fast lite model answers instead.
+// Measured on the free tier (Oct 2026): 3.6-flash about 6 s, 3.5-flash-lite under 1 s; 3.7/3.8-flash timed out.
+async function askGemini(messages: Turn[]): Promise<string> {
+  const models = [Deno.env.get("GEMINI_MODEL") || "gemini-3.6-flash", "gemini-3.5-flash-lite"];
+  let lastError: unknown;
+  for (const [i, model] of models.entries()) {
+    try {
+      return await geminiOnce(model, messages, i === 0 ? 25_000 : 20_000);
+    } catch (error) {
+      lastError = error;
+      const retry = !(error instanceof GeminiError) || error.status === 404 || error.status === 429 || error.status >= 500;
+      if (!retry) throw error;
+      console.error("Gemini model failed, trying the next one", model, error instanceof Error ? error.message : error);
+    }
+  }
+  throw lastError;
+}
+
+async function geminiOnce(model: string, messages: Turn[], timeoutMs: number): Promise<string> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": Deno.env.get("GEMINI_API_KEY")! },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM }] },
+      contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      generationConfig: { maxOutputTokens: 4000 },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) throw new GeminiError(res.status, (await res.text()).slice(0, 300));
+  const data = await res.json();
+  if (data.promptFeedback?.blockReason) return REFUSED;
+  const candidate = data.candidates?.[0];
+  if (candidate?.finishReason === "SAFETY") return REFUSED;
+  return ((candidate?.content?.parts ?? []) as { text?: string; thought?: boolean }[])
+    .filter((p) => p.text && !p.thought)
+    .map((p) => p.text)
+    .join("")
+    .trim();
+}

@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   near: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(5,12,20,0.6)', justifyContent: 'flex-end', padding: 12 },
   sheet: { maxHeight: '88%', overflow: 'hidden', width: '100%', maxWidth: 520, alignSelf: 'center' },
-  photoBox: { height: 210, backgroundColor: '#BFE3F2' },
+  photoBox: { height: 210, overflow: 'hidden', backgroundColor: '#BFE3F2' },
   badges: { position: 'absolute', left: 14, bottom: 12, flexDirection: 'row', gap: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14 },
   badgeText: { color: colors.white, fontFamily: fonts.sansBold, fontSize: 11, lineHeight: 15, letterSpacing: 0.6 },

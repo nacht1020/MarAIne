@@ -1,8 +1,7 @@
 # Huli Ko — project rules
 
 Fisheries traceability and coastal resource management for small-scale fishers in Marinduque, Philippines.
-This repo holds the Supabase backend, the admin dashboard (`/admin`), the public QR page (`/trace/[token]`),
-and — in a later phase — the fisher mobile app. Shared logic lives in `/lib` so the mobile app can reuse it.
+This repo holds the Supabase backend, the admin dashboard (`/admin`), and — in a later phase — the fisher mobile app. Shared logic lives in `/lib` so the mobile app can reuse it.
 
 ## Stack (do not substitute without asking)
 - Next.js 14 App Router + TypeScript (strict)
@@ -24,7 +23,6 @@ and — in a later phase — the fisher mobile app. Shared logic lives in `/lib`
 
 ## Data and privacy
 - Exact catch coordinates are visible to admins only. Public pages show municipality-level area only.
-- The public QR page reads only through `get_trace(token)` (sanitized `public_trace` view).
 - No secrets in code. Keys live in `.env.local`. `SMS_WEBHOOK_SECRET` is server-only (never `NEXT_PUBLIC_`).
 - The app uses only the publishable key. Privileged writes go through narrow SECURITY DEFINER functions
   (e.g. `ingest_sms_catch`), not a service/secret key.

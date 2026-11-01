@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Loader2, MessageSquareText, Send, Smartphone } from "lucide-react";
+import { Loader2, MessageSquareText, Send, Smartphone } from "lucide-react";
 import { simulateSms } from "@/app/admin/sms/actions";
 import { CatchStatusBadge } from "@/components/catch/catch-status";
 import { LicenseBadge } from "@/components/fishers/license-badge";
@@ -97,9 +97,6 @@ export function SmsSimulator({ senders }: { senders: SenderOption[] }) {
                     {m.outcome.status && <CatchStatusBadge status={m.outcome.status} />}
                     <Link href={`/admin/catches?q=${m.outcome.qrToken}`} className="text-xs text-teal hover:underline">
                       Open in Catches
-                    </Link>
-                    <Link href={`/trace/${m.outcome.qrToken}`} target="_blank" className="inline-flex items-center gap-0.5 text-xs text-teal hover:underline">
-                      QR page <ExternalLink className="size-3" aria-hidden />
                     </Link>
                   </div>
                 )}

@@ -28,7 +28,6 @@ export type CatchIncident = {
   fisher: string;
   reasons: string[];
   zoneName: string | null;
-  qrToken: string;
 };
 
 export type ReportIncident = {

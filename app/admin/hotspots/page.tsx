@@ -18,7 +18,7 @@ export default async function HotspotsPage({ searchParams }: { searchParams: { d
   const [catches, reports, zones] = await Promise.all([
     supabase
       .from("catch_details")
-      .select("id, lat, lng, caught_at, status, species_local_name, fisher_name, flag_reasons, zone_name, qr_token")
+      .select("id, lat, lng, caught_at, status, species_local_name, fisher_name, flag_reasons, zone_name")
       .in("status", statuses as ("flagged" | "reviewed")[])
       .gte("caught_at", since)
       .limit(5000),
@@ -60,7 +60,6 @@ export default async function HotspotsPage({ searchParams }: { searchParams: { d
       fisher: c.fisher_name ?? "Unknown fisher",
       reasons: c.flag_reasons ?? [],
       zoneName: c.zone_name,
-      qrToken: c.qr_token!,
     });
   }
   for (const r of reports.data ?? []) {

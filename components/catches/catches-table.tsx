@@ -124,7 +124,7 @@ export function CatchesTable({ rows, total, filters, initialOpenId = null }: Pro
       <EmptyState
         icon={Fish}
         title="No catches match these filters"
-        description={filters.q ? `Nothing found for "${filters.q}". Try a fisher's name, a species or a QR code.` : "Try clearing a filter."}
+        description={filters.q ? `Nothing found for "${filters.q}". Try a fisher's name or a species.` : "Try clearing a filter."}
       />
     );
   }

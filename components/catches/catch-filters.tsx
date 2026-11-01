@@ -55,7 +55,7 @@ export function CatchFilters({ filters, species, zones }: { filters: Filters; sp
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onBlur={() => q !== filters.q && push({ q })}
-          placeholder="Fisher, species or QR code"
+          placeholder="Fisher or species"
           className="h-9 bg-card pl-8"
         />
       </form>

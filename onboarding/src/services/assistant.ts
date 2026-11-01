@@ -39,7 +39,7 @@ async function knowledge(): Promise<string> {
     `Places in the app:\n${places}`,
     `Marine zones:\n${zones}`,
     `Visitor and coastal rules from the app's Guide:\n${rules}`,
-    'Reporting: the Report screen sends reports of illegal or destructive fishing, commercial boats, pollution and habitat damage to Bantay Dagat and the MAO (needs a Huli Ko account).',
+    'Reporting: the Report screen sends reports of illegal or destructive fishing, commercial boats, pollution and habitat damage to Bantay Dagat and the MAO (needs a MarAIne account).',
   ].join('\n\n');
 }
 

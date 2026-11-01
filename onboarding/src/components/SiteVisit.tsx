@@ -31,13 +31,8 @@ export function SiteRules({ placeId, site, failed, onChanged }: { placeId: strin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CheckInError | null>(null);
 
-  if (failed && !site) {
-    return (
-      <AppText variant="caption" color="textMuted">
-        {t('Visitor limits could not load. Check your signal.', 'Hindi ma-load ang limit ng bisita. Tingnan ang signal mo.')}
-      </AppText>
-    );
-  }
+  // No rules to show (no signal, or the site list is not set up yet): leave the card as it was.
+  if (failed && !site) return null;
   if (!site) return <ActivityIndicator color={c.primary} />;
 
   const here = visit?.placeId === placeId;

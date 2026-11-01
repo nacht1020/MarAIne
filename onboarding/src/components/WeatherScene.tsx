@@ -63,8 +63,13 @@ export function WeatherScene({ mood, waveHeightM, height, children }: WeatherSce
   const p = PALETTE[mood];
   // Wind makes the sea and the boat livelier even when the swell itself is small.
   const h = (waveHeightM ?? 0.2) + (mood === 'windy' ? 1.2 : mood === 'rain' ? 0.6 : 0);
-  const seaTop = height * 0.62;
+  const seaTop = height * 0.66;
   const geo = { width, height, seaTop, h };
+  // Float the banca on the middle wave: its waterline (about 20% up the drawing) sits on the wave's mean
+  // surface, so the wave laps the hull instead of swallowing it. The band's mean surface is 76 - amp up.
+  const boatH = Math.min(200, Math.max(130, width * 0.42)) * 0.6;
+  const surface = (height - seaTop) * 0.22 + 76 - waveMotion(h).amp;
+  const boatBottom = surface - boatH * 0.15;
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
 
@@ -90,7 +95,7 @@ export function WeatherScene({ mood, waveHeightM, height, children }: WeatherSce
 
           {/* Shared by every mood, so they never jump: the boat eases its rocking to the new sea. */}
           <JumpingFishLayer width={width} height={(height - seaTop) * 2.4} reduce={reduce} />
-          <Boat sceneWidth={width} bottom={(height - seaTop) * 0.34} waveHeightM={h} reduce={reduce} />
+          <Boat sceneWidth={width} bottom={boatBottom} waveHeightM={h} reduce={reduce} />
 
           <Animated.View
             key={`front-${mood}`}
@@ -135,6 +140,7 @@ function BackLayer({ mood, geo, reduce }: { mood: Mood; geo: Geo; reduce: boolea
       </Svg>
       <Clouds mood={mood} width={width} skyHeight={seaTop} reduce={reduce} color={p.cloud} />
       {mood === 'windy' ? <WindStreaks width={width} skyHeight={seaTop} reduce={reduce} /> : null}
+      {mood === 'sunny' || mood === 'clearing' || mood === 'cloudy' ? <Birds width={width} skyHeight={seaTop} reduce={reduce} /> : null}
       <View style={[styles.sea, { top: seaTop, backgroundColor: p.back }]} />
       <WaveBand width={width} bottom={height - seaTop - 40} amp={amp * 0.6} duration={drift * 1.5} color={p.back} reduce={reduce} />
     </>
@@ -278,6 +284,36 @@ function Streak({ t, offset, top, width }: { t: SharedValue<number>; offset: num
     <Animated.View pointerEvents="none" style={[styles.abs, { top, left: 0 }, style]}>
       <Svg width={110} height={14} viewBox="0 0 110 14">
         <Path d="M2 7 C 30 2, 60 12, 108 6" stroke={colors.white} strokeOpacity={0.8} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+// A few seabirds gliding across the sky in fair weather, each flapping on its own beat.
+function Birds({ width, skyHeight, reduce }: { width: number; skyHeight: number; reduce: boolean }) {
+  const t = useLoop(30000, reduce);
+  const flap = useLoop(900, reduce);
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <Bird key={i} t={t} flap={flap} offset={i * 0.09} phase={i * 0.33} top={skyHeight * 0.42 + i * 12} width={width} size={i === 1 ? 16 : 20} />
+      ))}
+    </>
+  );
+}
+
+function Bird({ t, flap, offset, phase, top, width, size }: { t: SharedValue<number>; flap: SharedValue<number>; offset: number; phase: number; top: number; width: number; size: number }) {
+  const style = useAnimatedStyle(() => {
+    const p = (t.value + offset) % 1;
+    const f = Math.abs(Math.sin(((flap.value + phase) % 1) * Math.PI * 2));
+    return {
+      transform: [{ translateX: p * (width + 80) - 40 }, { translateY: Math.sin(p * Math.PI * 4) * 6 }, { scaleY: 0.45 + f * 0.55 }],
+    };
+  });
+  return (
+    <Animated.View pointerEvents="none" style={[styles.abs, { top, left: 0 }, style]}>
+      <Svg width={size} height={size * 0.5} viewBox="0 0 20 10">
+        <Path d="M1 8 Q 5 1, 10 7 Q 15 1, 19 8" stroke={colors.sea800} strokeOpacity={0.55} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </Svg>
     </Animated.View>
   );

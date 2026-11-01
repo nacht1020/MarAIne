@@ -45,7 +45,7 @@ export interface HomeAction {
 
 const A = {
   log: { key: 'log', href: '/log', icon: 'fish', tone: 'reef', label: 'Log catch', hint: 'Works without signal' },
-  catches: { key: 'catches', href: '/catches', icon: 'basket-outline', tone: 'mangrove', label: 'My catches', hint: 'Records and QR codes' },
+  catches: { key: 'catches', href: '/catches', icon: 'basket-outline', tone: 'mangrove', label: 'My catches', hint: 'Records and review status' },
   farm: { key: 'farm', href: '/farm', icon: 'sprout-outline', tone: 'mangrove', label: 'My farm', hint: 'Lines, cages, and days since planting' },
   harvest: { key: 'harvest', href: '/farm', icon: 'scale', tone: 'reef', label: 'Record harvest', hint: 'Wet weight per line or cage' },
   report: { key: 'report', href: '/report', icon: 'bullhorn-outline', tone: 'coral', label: 'Report', hint: 'Tell Bantay Dagat' },

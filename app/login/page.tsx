@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Fish, MapPinned, QrCode, ShieldCheck } from "lucide-react";
+import { ClipboardList, Fish, MapPinned, ShieldCheck } from "lucide-react";
 import { AppLogo } from "@/components/brand/app-logo";
 import { getCurrentProfile } from "@/lib/auth";
 import { LoginForm } from "./login-form";
@@ -33,7 +33,7 @@ export default async function LoginPage({
             </p>
           </div>
           <ul className="space-y-4 text-sm">
-            <Feature icon={QrCode} title="Traceable catch" text="Each log gets a QR code: who, where, when, and from which zone." />
+            <Feature icon={ClipboardList} title="Recorded catch" text="Each log keeps who, where, when, and from which zone." />
             <Feature icon={MapPinned} title="Managed zones" text="Restricted areas, sanctuaries and advisories checked on every log." />
             <Feature icon={ShieldCheck} title="Faster response" text="Flagged logs and community reports in one queue for review." />
           </ul>

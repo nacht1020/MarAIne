@@ -5,7 +5,7 @@ import type { CatchRecord, CatchServer, CatchStatus, ReportRecord } from '@/stor
 import { supabase } from './supabase';
 
 // One record at a time against the same tables and RLS the web app uses. Triggers on the server
-// set status, flags, zone and QR token; the phone only sends what the fisher entered.
+// set status, flags and zone; the phone only sends what the fisher entered.
 
 export class Transient extends Error {}
 
